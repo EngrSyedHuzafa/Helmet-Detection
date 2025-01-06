@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helmet Detection</title>
+    <link rel="stylesheet" href="/static/results/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Helmet Detection System</h1>
+    </header>
+    <main>
+        <section class="uploadImages">
+            <form id="uploadImageForm">
+                <h2>Upload an Image</h2>
+                <input type="file" id="imageInput" name="image" accept="image/*" required>
+                <button type="submit">Upload and Detect</button>
+            </form>
+            <div id="imageResult">
+                <h3>Image Detection Result:</h3>
+                <img id="resultImage" src="" alt="Detection result will appear here" style="display: none;">
+            </div>
+        </section>
+
+        <section class="uploadVideo">
+            <form id="uploadVideoForm">
+                <h2>Upload a Video</h2>
+                <input type="file" id="videoInput" name="video" accept="video/*" required>
+                <button type="submit">Upload and Detect</button>
+            </form>
+            <div id="videoResult">
+                <h3>Video Detection Result:</h3>
+                <video id="resultVideo" controls style="display: none;">
+                    <source id="resultVideoSource" src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </section>
+        <section class="startDetection">
+            <h2>Real-Time Helmet Detection</h2>
+            <button id="startDetectionBtn">Start Detection</button>
+                <!-- Button to start the webcam feed -->
+    
+    <!-- Button to stop the webcam feed -->
+    <button id="stopDetectionBtn" style="display: none;">Stop Detection</button>
+
+            <div id="videoFeedContainer">
+                <img id="videoFeed" src="" alt="Real-time detection feed will appear here" style="display: none;">
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Handle image upload and detection
+        document.getElementById('uploadImageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData();
+            const imageFile = document.getElementById('imageInput').files[0];
+            formData.append('image', imageFile);
+
+            try {
+                const response = await fetch('/upload-image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Server error:', errorText);
+                    return alert('An error occurred on the server. Please try again.');
+                }
+
+                const data = await response.json();
+
+                if (data.result_image) {
+                    const resultImage = document.getElementById('resultImage');
+                    resultImage.src = data.result_image;
+                    resultImage.style.display = 'block';
+                } else {
+                    alert(data.error || 'An error occurred');
+                }
+            } catch (error) {
+                console.error('Error during fetch:', error);
+                alert('There was an error processing the request.');
+            }
+        });
+
+        // Handle video upload and detection
+        document.getElementById('uploadVideoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData();
+            const videoFile = document.getElementById('videoInput').files[0];
+            formData.append('video', videoFile);
+
+            try {
+                const response = await fetch('/upload-video', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Server error:', errorText);
+                    return alert('An error occurred on the server. Please try again.');
+                }
+
+                const data = await response.json();
+
+                if (data.result_video) {
+                    const resultVideo = document.getElementById('resultVideo');
+                    const resultVideoSource = document.getElementById('resultVideoSource');
+
+                    resultVideoSource.src = data.result_video;
+                    resultVideo.load(); // Reload the video source
+                    resultVideo.style.display = 'block';
+                } else {
+                    alert(data.error || 'An error occurred');
+                }
+            } catch (error) {
+                console.error('Error during fetch:', error);
+                alert('There was an error processing the request.');
+            }
+        });
+
+         // Start detection button click event
+         document.getElementById('startDetectionBtn').addEventListener('click', () => {
+            const videoFeed = document.getElementById('videoFeed');
+            const stopBtn = document.getElementById('stopDetectionBtn');
+            videoFeed.style.display = 'block';
+            videoFeed.src = "/video_feed";  // Set the source to the video feed route
+
+            // Show stop button when the video starts
+            stopBtn.style.display = 'inline-block';
+        });
+
+        // Stop detection button click event
+        document.getElementById('stopDetectionBtn').addEventListener('click', () => {
+            fetch('/stop_video_feed', { method: 'POST' })  // Make POST request to stop feed
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data.message); // Log the message from the server
+                    const videoFeed = document.getElementById('videoFeed');
+                    videoFeed.style.display = 'none';  // Hide video feed
+                    document.getElementById('stopDetectionBtn').style.display = 'none';  // Hide stop button
+                })
+                .catch(error => console.error('Error stopping video feed:', error));
+        });
+    </script>
+</body>
+</html>
